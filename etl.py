@@ -25,14 +25,25 @@ from bs4 import BeautifulSoup
 
 main_url = "http://books.toscrape.com/"
 
-#We search for all existing categories url
+#Cette méthode permet de recuperer la liste des url des catégories
 def run_main_page_for_categories_url_to_scrap(main_url):
 	dictionary_categories = dict()
+	response = requests.get(main_url)
+	if response.status_code !=200:
+		print("error "+response.status_code)
+	else:
+		main_page = requests.get(main_url)
+		main_soup = BeautifulSoup(main_page.content, 'html.parser')
+		main_soup = main_soup.find(class_="nav nav-list")
+		for url in main_soup.find_all("a", href=True):
+			#print(url.string)
+			#print(main_url+url['href'])
+
 	#get category_name
 	#get category_url
-	dictionary_categories[category_name] = category_url
+	#dictionary_categories[category_name] = category_url
 
-	return dictionary_categories
+	#return dictionary_categories
 
 """We will scrap each category collecting book's url
 def run_all_categories_collect_book_url(categories_url_list):
@@ -42,7 +53,7 @@ def run_all_categories_collect_book_url(categories_url_list):
 	return books_url_list
 """
 
-#Inside a category we collect each book url + loop on the next page of the given category
+#Cette méthode va récuperer pour chaque catégorie la liste des pages livres en parcourant si besoin les pages suivantes
 def scrap_a_category_page_for_url(category_url):
 	url_list=[]
 	category_page = requests.get(category_url)
@@ -52,16 +63,16 @@ def scrap_a_category_page_for_url(category_url):
 	# url_list.append(soup.find_all("td", class_="pb-2 font-600 text-sm xs:text-base sm:text-lg leading-tight pt-2"))
 	#
 
-	if(collect_url_from_next_button(category_url) is not None)
-		url_list.append(scrap_a_category_page_for_url(collect_category_page_from_next_button(category_url))
+	if(collect_url_from_next_button(category_url) is not None):
+		url_list.append(scrap_a_category_page_for_url(collect_category_page_from_next_button(category_url)))
 
 	return url_list
 
-#Is there any next button url
+#Cette méthode renvoie l'url de la page next ou none s'il n'y en a pas
 def collect_category_page_from_next_button (page_url):
-	if (thereisanextbutton)
+	if (thereisanextbutton):
 		return next_url
-	else
+	else:
 		return None
 
 
@@ -90,26 +101,25 @@ def scrap_a_book_file(book_url):
 #création d'un nouveau fichier pour une catégorie
 def create_new_category_csv(category):
 # La liste des en-têtes
-en_tete = ["product_page_url", "universal_product_code", "title", "price_including_tax", "price_excluding_tax", "number_available", "product_description","category", "review_rating","image_url"]
+	en_tete = ["product_page_url","universal_product_code","title","price_including_tax","price_excluding_tax","number_available","product_description","category","review_rating","image_url"]
 
-# Créer un nouveau fichier pour écrire dans le fichier csv du nom de la catégorie
-with open(category+'.csv', 'w') as category_csv:
-	# Créer un objet writer (écriture) avec ce fichier
-   	writer = csv.writer(fichier_csv, delimiter=',')
-   	writer.writerow(en_tete)
-return fichier_csv
+	# Créer un nouveau fichier pour écrire dans le fichier csv du nom de la catégorie
+	with open(category+'.csv', 'w') as category_csv:
+		# Créer un objet writer (écriture) avec ce fichier
+		writer = csv.writer(fichier_csv, delimiter=',')
+		writer.writerow(en_tete)
+	return fichier_csv
 
-def write_in_category_csv(fichier_csv, dictionary_booktoscrape)
+def write_in_category_csv(fichier_csv, dictionary_booktoscrape):
 	writer = csv.writer(fichier_csv, delimiter=',')
    	
    	# Parcourir les titres et descriptions - zip permet d'itérer sur deux listes ou plus à la fois
-   	for item in dictionary_booktoscrape:
+	for item in dictionary_booktoscrape:
+		print(item)
       	# Créer une nouvelle ligne avec les items
-      	ligne = [titre, description]
-    
-    writer.writerow(ligne)
-    return fichier_csv
-
+      	#ligne = [titre, description]
+    #writer.writerow(ligne)
+	return fichier_csv
 
 
 main_url = "http://books.toscrape.com/"
