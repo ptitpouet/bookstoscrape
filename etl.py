@@ -21,9 +21,8 @@ Au cours du projet, veillez à enregistrer votre code dans un repository GitHub
 """
 
 import requests
+import csv
 from bs4 import BeautifulSoup
-
-main_url = "http://books.toscrape.com/"
 
 #Cette méthode permet de recuperer la liste des url des catégories
 def run_main_page_for_categories_url_to_scrap(main_url):
@@ -46,14 +45,14 @@ def run_main_page_for_categories_url_to_scrap(main_url):
 			name_category = name_category.rstrip()
 			#récupérons l'url relative et ajoutons le nom de domaine
 			url_category = main_url+url['href']
-			print(name_category)
-			print(url_category)
+			#print(name_category)
+			#print(url_category)
 			
 			#Le tête de liste Books est un retour à la liste globale. On ignore
 			if(name_category != "Books"):
 				#on enregistre dans un dictionnaire nom/categorie
 				dictionary_categories[name_category] = url_category
-	print(dictionary_categories)
+	#print(dictionary_categories)
 	return dictionary_categories
 
 """We will scrap each category collecting book's url
@@ -117,9 +116,9 @@ def create_new_category_csv(category):
 	# Créer un nouveau fichier pour écrire dans le fichier csv du nom de la catégorie
 	with open(category+'.csv', 'w') as category_csv:
 		# Créer un objet writer (écriture) avec ce fichier
-		writer = csv.writer(fichier_csv, delimiter=',')
+		writer = csv.writer(category_csv, delimiter=',')
 		writer.writerow(en_tete)
-	return fichier_csv
+	return category_csv
 
 def write_in_category_csv(fichier_csv, dictionary_booktoscrape):
 	writer = csv.writer(fichier_csv, delimiter=',')
@@ -132,17 +131,25 @@ def write_in_category_csv(fichier_csv, dictionary_booktoscrape):
     #writer.writerow(ligne)
 	return fichier_csv
 
-
+#Notre URL de travail
 main_url = "http://books.toscrape.com/"
+
+#Récupérons un dictionnaire de Nom/Url de toutes les catégories
 categories_list = run_main_page_for_categories_url_to_scrap(main_url)
 
-'''
+#Bouclons sur la liste
 for category in categories_list:
-	#create new csv call category
+	
+	#créons un nouveau fichier csv. L'objectif est d'en créer un pour chacune
 	category_csv = create_new_category_csv(category)
 
+	#Récupérons la liste des urls de tous les livres de la catégorie 
+	print(categories_list[category])
+'''
 	book_list = scrap_a_category_page_for_url(categories_list[category])
+	print(book_list)
+
 	for book_url in book_urls:
 		print(scrap_a_book_file(book_url))
-		write_in_category_csv(category_csv)
+		#write_in_category_csv(category_csv)
 '''
