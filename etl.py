@@ -29,21 +29,32 @@ main_url = "http://books.toscrape.com/"
 def run_main_page_for_categories_url_to_scrap(main_url):
 	dictionary_categories = dict()
 	response = requests.get(main_url)
+	#Testons le code retour pour éviter une page KO
 	if response.status_code !=200:
 		print("error "+response.status_code)
 	else:
 		main_page = requests.get(main_url)
 		main_soup = BeautifulSoup(main_page.content, 'html.parser')
+		# Ciblons la section du menu à gauche
 		main_soup = main_soup.find(class_="nav nav-list")
+		# Ciblons la balise <a href
 		for url in main_soup.find_all("a", href=True):
-			#print(url.string)
-			#print(main_url+url['href'])
-
-	#get category_name
-	#get category_url
-	#dictionary_categories[category_name] = category_url
-
-	#return dictionary_categories
+			#Recuperons le nom de la catégorie
+			name_category = url.string
+			#Le retour est visiblement rempli d'espace à neutraliser
+			name_category = name_category.lstrip()
+			name_category = name_category.rstrip()
+			#récupérons l'url relative et ajoutons le nom de domaine
+			url_category = main_url+url['href']
+			print(name_category)
+			print(url_category)
+			
+			#Le tête de liste Books est un retour à la liste globale. On ignore
+			if(name_category != "Books"):
+				#on enregistre dans un dictionnaire nom/categorie
+				dictionary_categories[name_category] = url_category
+	print(dictionary_categories)
+	return dictionary_categories
 
 """We will scrap each category collecting book's url
 def run_all_categories_collect_book_url(categories_url_list):
@@ -125,7 +136,7 @@ def write_in_category_csv(fichier_csv, dictionary_booktoscrape):
 main_url = "http://books.toscrape.com/"
 categories_list = run_main_page_for_categories_url_to_scrap(main_url)
 
-"""
+'''
 for category in categories_list:
 	#create new csv call category
 	category_csv = create_new_category_csv(category)
@@ -134,4 +145,4 @@ for category in categories_list:
 	for book_url in book_urls:
 		print(scrap_a_book_file(book_url))
 		write_in_category_csv(category_csv)
-"""
+'''
