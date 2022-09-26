@@ -32,6 +32,7 @@ def run_main_page_for_categories_url_to_scrap(main_url):
 	if response.status_code !=200:
 		print("error "+response.status_code)
 	else:
+		#On utilise la bibliotheque d'analyse synthaxique BeautifulSoup
 		main_page = requests.get(main_url)
 		main_soup = BeautifulSoup(main_page.content, 'html.parser')
 		# Ciblons la section du menu à gauche
@@ -66,20 +67,25 @@ def run_all_categories_collect_book_url(categories_url_list):
 #Cette méthode va récuperer pour chaque catégorie la liste des pages livres en parcourant si besoin les pages suivantes
 def scrap_a_category_page_for_url(category_url):
 	url_list=[]
+
 	category_page = requests.get(category_url)
-	category_soup = BeautifulSoup(page.content, 'html.parser')
-
-	#
-	# url_list.append(soup.find_all("td", class_="pb-2 font-600 text-sm xs:text-base sm:text-lg leading-tight pt-2"))
-	#
-
+	category_soup = BeautifulSoup(category_page.content, 'html.parser')
+	# Ciblons la section centrale taggué row
+	category_soup = category_soup.find(class_="col-sm-8 col-md-9")
+	
+	for url in category_soup.find_all("div", class_="image_container"):
+		url_book = url.find("a", href=True)
+		url_list.append(url_book['href'])
+			
+	'''
 	if(collect_url_from_next_button(category_url) is not None):
-		url_list.append(scrap_a_category_page_for_url(collect_category_page_from_next_button(category_url)))
-
+		url_list.append(scrap_a_category_page_for_url(collect_following_category_url_from_next_button(category_url)))
+	'''
+	print(url_list)
 	return url_list
 
 #Cette méthode renvoie l'url de la page next ou none s'il n'y en a pas
-def collect_category_page_from_next_button (page_url):
+def collect_following_category_url_from_next_button (page_url):
 	if (thereisanextbutton):
 		return next_url
 	else:
@@ -144,11 +150,9 @@ for category in categories_list:
 	category_csv = create_new_category_csv(category)
 
 	#Récupérons la liste des urls de tous les livres de la catégorie 
-	print(categories_list[category])
-'''
 	book_list = scrap_a_category_page_for_url(categories_list[category])
-	print(book_list)
-
+	#print(book_list)
+'''
 	for book_url in book_urls:
 		print(scrap_a_book_file(book_url))
 		#write_in_category_csv(category_csv)
