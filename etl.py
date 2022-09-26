@@ -22,6 +22,7 @@ Au cours du projet, veillez à enregistrer votre code dans un repository GitHub
 
 import requests
 import csv
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 #Cette méthode permet de recuperer la liste des url des catégories
@@ -70,18 +71,24 @@ def scrap_a_category_page_for_url(category_url):
 
 	category_page = requests.get(category_url)
 	category_soup = BeautifulSoup(category_page.content, 'html.parser')
-	# Ciblons la section centrale taggué row
+	# Ciblons la section centrale
 	category_soup = category_soup.find(class_="col-sm-8 col-md-9")
 	
+	# Ciblons les images qui contiennent l'url. On évite le doublon avec le lien texte
 	for url in category_soup.find_all("div", class_="image_container"):
 		url_book = url.find("a", href=True)
-		url_list.append(url_book['href'])
+		url_book = url_book['href']
+		
+		#L'url est relative. Il faut recréer l'url absolu avec un urljoin
+		url_book = urljoin(category_url,url_book)
+		
+		#On ajoute l'url collectée au fichier retourné
+		url_list.append(url_book)
 			
 	'''
 	if(collect_url_from_next_button(category_url) is not None):
 		url_list.append(scrap_a_category_page_for_url(collect_following_category_url_from_next_button(category_url)))
 	'''
-	print(url_list)
 	return url_list
 
 #Cette méthode renvoie l'url de la page next ou none s'il n'y en a pas
@@ -151,7 +158,7 @@ for category in categories_list:
 
 	#Récupérons la liste des urls de tous les livres de la catégorie 
 	book_list = scrap_a_category_page_for_url(categories_list[category])
-	#print(book_list)
+	print(book_list)
 '''
 	for book_url in book_urls:
 		print(scrap_a_book_file(book_url))
