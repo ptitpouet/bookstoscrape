@@ -57,14 +57,6 @@ def run_main_page_for_categories_url_to_scrap(main_url):
 	#print(dictionary_categories)
 	return dictionary_categories
 
-"""We will scrap each category collecting book's url
-def run_all_categories_collect_book_url(categories_url_list):
-	books_url_list = []
-	for category_url in categories_url_list:
-		books_url_list.append(collect_book_url_from_category_page(category_url))
-	return books_url_list
-"""
-
 #Cette méthode va récuperer pour chaque catégorie la liste des pages livres en parcourant si besoin les pages suivantes
 def scrap_a_category_page_for_url(category_url):
 	url_list=[]
@@ -116,52 +108,105 @@ def collect_following_category_url_from_next_button (category_url):
 
 
 #Scrap a book/product into a dictionnary	
-def scrap_a_book_file(book_url):
-	
-	book_page = requests.get(book_url)
-	book_soup = BeautifulSoup(page.content, 'html.parser')
-	book_soup.find_all("td", class_="pb-2 font-600 text-sm xs:text-base sm:text-lg leading-tight pt-2")
-	print(book_url)
-
+def scrap_a_book_file(book_url, category, information_list):
 	dictionary_booktoscrape = dict()
-	dictionary_booktoscrape["product_page_url"] = ""
-	dictionary_booktoscrape["universal_product_code"] = ""
-	dictionary_booktoscrape["title"] = ""
-	dictionary_booktoscrape["price_including_tax"] = ""
-	dictionary_booktoscrape["price_excluding_tax"] = ""
-	dictionary_booktoscrape["number_available"] = ""
-	dictionary_booktoscrape["product_description"] = ""
-	dictionary_booktoscrape["category"] = ""
-	dictionary_booktoscrape["review_rating"] = ""
-	dictionary_booktoscrape["image_url"] = ""
+	
+	#L'url et la catégorie sont disponibles directement depuis les arguments de notre fonction
+	dictionary_booktoscrape[information_list[0]] = book_url
+	dictionary_booktoscrape[information_list[7]] = category
+
+	book_page = requests.get(book_url)
+	book_soup = BeautifulSoup(book_page.content, 'html.parser')
+
+	#Une partie des informations est disponibles dans le tableau table-striped
+	product_table = book_soup.find(class_="table table-striped")
+	product_table = product_table.find_all("td")
+	dictionary_booktoscrape[information_list[1]] = product_table[0].string
+	dictionary_booktoscrape[information_list[4]] = product_table[2].string
+	dictionary_booktoscrape[information_list[3]] = product_table[3].string
+	
+	#Le cas du stock est particulier. Il serait préférable de récupérer une valeur entier en supprimant texte et parenthèses 
+	string_stock = product_table[5].string
+	if(string_stock.startswith("In stock")):
+		string_stock = string_stock.replace("In stock (","")
+		string_stock = string_stock.replace(" available)","")
+	#On va également gérer le cas qui ne commencent pas en In Stock comme un valeur à 0 
+	else:
+		string_stock = "0"
+	dictionary_booktoscrape[information_list[5]] = string_stock
+
+	#La Partie ProductMain contient plusieurs informations à récupérer
+	main_soup = book_soup.find(class_="col-sm-6 product_main")
+	title_soup = main_soup.find("h1")
+	dictionary_booktoscrape[information_list[2]] = title_soup.string
+
+	#On va récuperer la note sous forme d'entier en vérifiant la présence de la star-rating class
+	if(main_soup.find(class_="star-rating One") is not None):
+		review_rating = 1
+	elif(main_soup.find(class_="star-rating Two") is not None):
+		review_rating = 2
+	elif(main_soup.find(class_="star-rating Three") is not None):
+		review_rating = 3
+	elif(main_soup.find(class_="star-rating Four") is not None):
+		review_rating = 4
+	elif(main_soup.find(class_="star-rating Five") is not None):
+		review_rating = 5
+	else: 
+		#Pour maintenir l'idée d'avoir un entier, on choisira le code erreur -1
+		review_rating = -1
+	
+	dictionary_booktoscrape[information_list[8]] = review_rating
+
+	#Ciblons l'élément carousel qui contient un tag <img> dont src est l'url
+	carousel_soup = book_soup.find(class_="carousel-inner")
+	carousel_soup = carousel_soup.find("img", src=True)
+	#Comme toujours, ne pas oublier de transformer l'url relative en absolue avec la fonction urljoin
+	dictionary_booktoscrape[information_list[9]] = urljoin(book_url,carousel_soup['src'])
+
+	#Récuperons la Product Description
+	#Il n'y pas vraiment d'accroche. C'est un <p> au milieu de nul part. On va cibler le sub-header et utiliser l'élément suivant de même imbrication
+	product_soup = book_soup.find(class_="sub-header")
+	product_soup = product_soup.find_next_sibling()
+	
+	dictionary_booktoscrape[information_list[6]] = product_soup.string
 
 	return dictionary_booktoscrape
 
 #création d'un nouveau fichier pour une catégorie
-def create_new_category_csv(category):
+def create_new_category_csv(category, information_list):
 # La liste des en-têtes
-	en_tete = ["product_page_url","universal_product_code","title","price_including_tax","price_excluding_tax","number_available","product_description","category","review_rating","image_url"]
-
+	
 	# Créer un nouveau fichier pour écrire dans le fichier csv du nom de la catégorie
-	with open(category+'.csv', 'w') as category_csv:
+	# l'attribut newline = '' permet d'éviter des sauts de lignes
+	with open(category+'.csv', 'w', encoding='utf-8', newline='') as category_csv:
 		# Créer un objet writer (écriture) avec ce fichier
 		writer = csv.writer(category_csv, delimiter=',')
-		writer.writerow(en_tete)
+		writer.writerow(information_list)
 	return category_csv
 
-def write_in_category_csv(fichier_csv, dictionary_booktoscrape):
-	writer = csv.writer(fichier_csv, delimiter=',')
-   	
-   	# Parcourir les titres et descriptions - zip permet d'itérer sur deux listes ou plus à la fois
-	for item in dictionary_booktoscrape:
-		print(item)
-      	# Créer une nouvelle ligne avec les items
-      	#ligne = [titre, description]
-    #writer.writerow(ligne)
+def write_in_category_csv(fichier_csv, dictionary_booktoscrape, information_list):
+	# Créons une nouvelle ligne.
+	row = []
+
+	#On va boucler sur notre fichier entete pour s'assurer que tout changement d'ordre sera repercuté
+	for information in information_list:
+		row.append(dictionary_booktoscrape[information])		
+
+	print(row)
+
+	#Ajoutons la ligne au fichier .csv ouvert en mode append 'a'
+	# l'attribut newline = '' permet d'éviter des sauts de lignes
+	# l'attribut encoding utf-8 corrige l'erreur 'charmap' codec can't encode character '\ufb01'
+	with open(fichier_csv.name, 'a', encoding='utf-8', newline='') as csvfile:
+		writer = csv.writer(csvfile, delimiter=',')
+		writer.writerow(row)		
 	return fichier_csv
 
 #Notre URL de travail
 main_url = "http://books.toscrape.com/"
+
+#les informations attendues
+information_list = ["product_page_url","universal_product_code","title","price_including_tax","price_excluding_tax","number_available","product_description","category","review_rating","image_url"]
 
 #Récupérons un dictionnaire de Nom/Url de toutes les catégories
 categories_list = run_main_page_for_categories_url_to_scrap(main_url)
@@ -170,13 +215,13 @@ categories_list = run_main_page_for_categories_url_to_scrap(main_url)
 for category in categories_list:
 	
 	#créons un nouveau fichier csv. L'objectif est d'en créer un pour chacune
-	category_csv = create_new_category_csv(category)
+	category_csv = create_new_category_csv(category, information_list)
 
 	#Récupérons la liste des urls de tous les livres de la catégorie 
 	book_list = scrap_a_category_page_for_url(categories_list[category])
-	print(book_list)
-'''
-	for book_url in book_urls:
-		print(scrap_a_book_file(book_url))
-		#write_in_category_csv(category_csv)
-'''
+	#print(book_list)
+
+	#On va maintenant boucler notre liste d'url. Ici nous sommes dans une catégorie, et donc son csv associé
+	for book_url in book_list:
+		category_csv = write_in_category_csv(category_csv, scrap_a_book_file(book_url, category, information_list), information_list)
+
