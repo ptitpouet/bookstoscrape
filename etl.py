@@ -76,6 +76,7 @@ def scrap_a_category_page_for_url(category_url):
 	
 	# Ciblons les images qui contiennent l'url. On évite le doublon avec le lien texte
 	for url in category_soup.find_all("div", class_="image_container"):
+		#on recupere l'url
 		url_book = url.find("a", href=True)
 		url_book = url_book['href']
 		
@@ -85,18 +86,33 @@ def scrap_a_category_page_for_url(category_url):
 		#On ajoute l'url collectée au fichier retourné
 		url_list.append(url_book)
 			
-	'''
-	if(collect_url_from_next_button(category_url) is not None):
-		url_list.append(scrap_a_category_page_for_url(collect_following_category_url_from_next_button(category_url)))
-	'''
+	next_url = collect_following_category_url_from_next_button(category_url)
+
+	if(next_url is not None):
+		#print("dans le if next " + next_url)
+		#on utilise cette même fonction pour boucler sur toutes les pages suivantes
+		scrap_a_category_page_for_url(next_url)
+	
+	#print(url_list)
 	return url_list
 
 #Cette méthode renvoie l'url de la page next ou none s'il n'y en a pas
-def collect_following_category_url_from_next_button (page_url):
-	if (thereisanextbutton):
-		return next_url
-	else:
+def collect_following_category_url_from_next_button (category_url):
+
+	category_page = requests.get(category_url)
+
+	category_soup = BeautifulSoup(category_page.content, 'html.parser')
+	# Ciblons le bouton Next pour en extraire l'url
+	next_soup = category_soup.find(class_="next")
+	# On doit sortir avec un résultat none en l'absence de bouton next
+	if(next_soup is None):
 		return None
+	else:
+		#on recupere l'url
+		next_url = next_soup.find("a", href=True)
+		#L'url est relative. On utilise à nouveau urljoin itsmagic
+		next_url = urljoin(category_url,next_url['href'])
+		return next_url
 
 
 #Scrap a book/product into a dictionnary	
