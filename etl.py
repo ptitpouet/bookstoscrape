@@ -193,8 +193,6 @@ def write_in_category_csv(fichier_csv, dictionary_booktoscrape, information_list
 	for information in information_list:
 		row.append(dictionary_booktoscrape[information])		
 
-	print(row)
-
 	#Ajoutons la ligne au fichier .csv ouvert en mode append 'a'
 	# l'attribut newline = '' permet d'éviter des sauts de lignes
 	# l'attribut encoding utf-8 corrige l'erreur 'charmap' codec can't encode character '\ufb01'
@@ -204,8 +202,6 @@ def write_in_category_csv(fichier_csv, dictionary_booktoscrape, information_list
 	return fichier_csv
 
 def download_image(book_scrapped, folder_name):
-	print(book_scrapped[information_list[9]])
-	print(folder_name)
 	response = requests.get(book_scrapped[information_list[9]]).content
 	
 	with open(f"{folder_name}/{book_scrapped[information_list[1]]}.jpg", "wb+") as f:
@@ -226,9 +222,6 @@ def image_folder_create():
         return folder_name
         #On peut ici forcer un nouveau dossier inexistant
         #image_folder_create()
- 
-
-
 
 #Notre URL de travail
 main_url = "http://books.toscrape.com/"
@@ -246,22 +239,29 @@ categories_list = run_main_page_for_categories_url_to_scrap(main_url)
 #Bouclons sur la liste
 for category in categories_list:
 	loop_count = 0
-
+	print("==> Début de la Catégorie "+category)
 	#créons un nouveau fichier csv. L'objectif est d'en créer un pour chacune
 	category_csv = create_new_category_csv(category, information_list)
 
 	#Récupérons la liste des urls de tous les livres de la catégorie 
 	book_list = scrap_a_category_page_for_url(categories_list[category])
-	#print(book_list)
-
+	
 	#On va maintenant boucler notre liste d'url. Ici nous sommes dans une catégorie, et donc son csv associé
 	for book_url in book_list:
+		#On effectue le web scapping de la page livre
 		book_scrapped = scrap_a_book_file(book_url, category, information_list)
-		
+		#On enregistre l'image
 		download_image(book_scrapped, folder_name)
-		#category_csv = write_in_category_csv(category_csv, book_scrapped, information_list)
+		#On ajoute la ligne au CSV
+		category_csv = write_in_category_csv(category_csv, book_scrapped, information_list)
 		loop_count +=1
-	
-	if(true):
-		break
+		
+		#Notre retour console
+		retour = "> Enregistrement #"+str(loop_count)+" : "
+		if (len(book_scrapped[information_list[2]])>30):
 
+			retour += book_scrapped[information_list[2]][0:29]
+		else:
+			retour += book_scrapped[information_list[2]]
+		
+		print(retour)
