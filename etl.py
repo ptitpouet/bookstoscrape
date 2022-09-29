@@ -22,6 +22,7 @@ Au cours du projet, veillez à enregistrer votre code dans un repository GitHub
 
 import requests
 import csv
+import os
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
@@ -202,18 +203,50 @@ def write_in_category_csv(fichier_csv, dictionary_booktoscrape, information_list
 		writer.writerow(row)		
 	return fichier_csv
 
+def download_image(book_scrapped, folder_name):
+	print(book_scrapped[information_list[9]])
+	print(folder_name)
+	response = requests.get(book_scrapped[information_list[9]]).content
+	
+	with open(f"{folder_name}/{book_scrapped[information_list[1]]}.jpg", "wb+") as f:
+		f.write(response)
+	
+def image_folder_create():
+    
+    try:
+        folder_name = input("Nom du dossier pour le téléchargement des images:- ")
+        # folder creation
+        os.mkdir(folder_name)
+        print("Dossier "+folder_name+" créé avec succès")
+        return folder_name
+
+    # if folder exists with that name, ask another name
+    except:
+        print("Ce dossier existe déjà !")
+        return folder_name
+        #On peut ici forcer un nouveau dossier inexistant
+        #image_folder_create()
+ 
+
+
+
 #Notre URL de travail
 main_url = "http://books.toscrape.com/"
 
 #les informations attendues
 information_list = ["product_page_url","universal_product_code","title","price_including_tax","price_excluding_tax","number_available","product_description","category","review_rating","image_url"]
 
+#L'utilisateur peut choisir les noms de dossiers pour stocker csv et images
+folder_name = image_folder_create()
+
 #Récupérons un dictionnaire de Nom/Url de toutes les catégories
 categories_list = run_main_page_for_categories_url_to_scrap(main_url)
 
+
 #Bouclons sur la liste
 for category in categories_list:
-	
+	loop_count = 0
+
 	#créons un nouveau fichier csv. L'objectif est d'en créer un pour chacune
 	category_csv = create_new_category_csv(category, information_list)
 
@@ -223,5 +256,12 @@ for category in categories_list:
 
 	#On va maintenant boucler notre liste d'url. Ici nous sommes dans une catégorie, et donc son csv associé
 	for book_url in book_list:
-		category_csv = write_in_category_csv(category_csv, scrap_a_book_file(book_url, category, information_list), information_list)
+		book_scrapped = scrap_a_book_file(book_url, category, information_list)
+		
+		download_image(book_scrapped, folder_name)
+		#category_csv = write_in_category_csv(category_csv, book_scrapped, information_list)
+		loop_count +=1
+	
+	if(true):
+		break
 
