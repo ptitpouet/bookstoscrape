@@ -1,28 +1,7 @@
-"""
-Choisissez n'importe quelle page Produit sur le site de Books to Scrape. Écrivez un script Python qui visite cette page et en extrait les informations suivantes :
-
-product_page_url
-universal_product_code
-title
-price_including_tax
-price_excluding_tax
-number_available
-product_description
-category
-review_rating
-image_url
-
-Écrivez les données dans un fichier CSV qui utilise les champs ci-dessus comme en-têtes de colonnes.
-Maintenant que vous avez obtenu les informations concernant un premier livre, vous pouvez essayer de récupérer toutes les données nécessaires pour toute une catégorie d'ouvrages. Choisissez n'importe quelle catégorie sur le site de Books to Scrape. Écrivez un script Python qui consulte la page de la catégorie choisie, et extrait l'URL de la page Produit de chaque livre appartenant à cette catégorie. Combinez cela avec le travail que vous avez déjà effectué afin d'extraire les données produit de tous les livres de la catégorie choisie, puis écrivez les données dans un seul fichier CSV.
-Remarque : certaines pages de catégorie comptent plus de 20 livres, qui sont donc répartis sur différentes pages («  pagination  »). Votre application doit être capable de parcourir automatiquement les multiples pages si présentes. 
-Ensuite, étendez votre travail à l'écriture d'un script qui consulte le site de Books to Scrape, extrait toutes les catégories de livres disponibles, puis extrait les informations produit de tous les livres appartenant à toutes les différentes catégories, ce serait fantastique  ! Vous devrez écrire les données dans un fichier CSV distinct pour chaque catégorie de livres.
-Enfin, prolongez votre travail existant pour télécharger et enregistrer le fichier image de chaque page Produit que vous consultez  !
-Au cours du projet, veillez à enregistrer votre code dans un repository GitHub
-"""
-
 import requests
 import csv
 import os
+import time
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
@@ -174,18 +153,19 @@ def scrap_a_book_file(book_url, category, information_list):
 	return dictionary_booktoscrape
 
 #création d'un nouveau fichier pour une catégorie
-def create_new_category_csv(category, information_list):
+def create_new_category_csv(category, information_list, folder_name):
 # La liste des en-têtes
 	
 	# Créer un nouveau fichier pour écrire dans le fichier csv du nom de la catégorie
 	# l'attribut newline = '' permet d'éviter des sauts de lignes
-	with open(category+'.csv', 'w', encoding='utf-8', newline='') as category_csv:
+	# Vu la ponctuation présente dans la description, on choisit le delimiter |
+	with open(f"{folder_name}/{category}.csv", 'w', encoding='utf-8', newline='') as category_csv:
 		# Créer un objet writer (écriture) avec ce fichier
-		writer = csv.writer(category_csv, delimiter=',')
+		writer = csv.writer(category_csv, delimiter='|')
 		writer.writerow(information_list)
 	return category_csv
 
-def write_in_category_csv(fichier_csv, dictionary_booktoscrape, information_list):
+def write_in_category_csv(fichier_csv, dictionary_booktoscrape, information_list, folder_name):
 	# Créons une nouvelle ligne.
 	row = []
 
@@ -197,7 +177,7 @@ def write_in_category_csv(fichier_csv, dictionary_booktoscrape, information_list
 	# l'attribut newline = '' permet d'éviter des sauts de lignes
 	# l'attribut encoding utf-8 corrige l'erreur 'charmap' codec can't encode character '\ufb01'
 	with open(fichier_csv.name, 'a', encoding='utf-8', newline='') as csvfile:
-		writer = csv.writer(csvfile, delimiter=',')
+		writer = csv.writer(csvfile, delimiter='|')
 		writer.writerow(row)		
 	return fichier_csv
 
@@ -223,6 +203,22 @@ def image_folder_create():
         #On peut ici forcer un nouveau dossier inexistant
         #image_folder_create()
 
+def csv_folder_create():
+    
+    try:
+        folder_name = input("Nom du dossier pour le téléchargement des données en csv:- ")
+        # folder creation
+        os.mkdir(folder_name)
+        print("Dossier "+folder_name+" créé avec succès")
+        return folder_name
+
+    # if folder exists with that name, ask another name
+    except:
+        print("Ce dossier existe déjà !")
+        return folder_name
+        #On peut ici forcer un nouveau dossier inexistant
+        #image_folder_create()
+
 #Notre URL de travail
 main_url = "http://books.toscrape.com/"
 
@@ -230,18 +226,21 @@ main_url = "http://books.toscrape.com/"
 information_list = ["product_page_url","universal_product_code","title","price_including_tax","price_excluding_tax","number_available","product_description","category","review_rating","image_url"]
 
 #L'utilisateur peut choisir les noms de dossiers pour stocker csv et images
-folder_name = image_folder_create()
+folder_image = image_folder_create()
+folder_csv = csv_folder_create()
+
+#C'est parti pour le scrapping
+start = time.time()
+loop_count = 0
 
 #Récupérons un dictionnaire de Nom/Url de toutes les catégories
 categories_list = run_main_page_for_categories_url_to_scrap(main_url)
 
-
 #Bouclons sur la liste
 for category in categories_list:
-	loop_count = 0
 	print("==> Début de la Catégorie "+category)
 	#créons un nouveau fichier csv. L'objectif est d'en créer un pour chacune
-	category_csv = create_new_category_csv(category, information_list)
+	category_csv = create_new_category_csv(category, information_list, folder_csv)
 
 	#Récupérons la liste des urls de tous les livres de la catégorie 
 	book_list = scrap_a_category_page_for_url(categories_list[category])
@@ -251,17 +250,22 @@ for category in categories_list:
 		#On effectue le web scapping de la page livre
 		book_scrapped = scrap_a_book_file(book_url, category, information_list)
 		#On enregistre l'image
-		download_image(book_scrapped, folder_name)
+		download_image(book_scrapped, folder_image)
 		#On ajoute la ligne au CSV
-		category_csv = write_in_category_csv(category_csv, book_scrapped, information_list)
+		category_csv = write_in_category_csv(category_csv, book_scrapped, information_list, folder_csv)
 		loop_count +=1
 		
 		#Notre retour console
 		retour = "> Enregistrement #"+str(loop_count)+" : "
-		if (len(book_scrapped[information_list[2]])>30):
+		if (len(book_scrapped[information_list[2]])>50):
 
-			retour += book_scrapped[information_list[2]][0:29]
+			retour += book_scrapped[information_list[2]][0:49]
 		else:
 			retour += book_scrapped[information_list[2]]
 		
 		print(retour)
+
+#Le Scrapping est terminé
+total_time = time.time() - start
+print("===> Opération terminée. Merci <===")
+print(">"+str(loop_count)+ " pages parcourues en "+ str(int(total_time/60))+" minute(s) et "+str(int(total_time%60))+" seconde(s)")
